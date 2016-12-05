@@ -1,0 +1,3 @@
+#!/usr/local/bin/node --harmony
+
+require('./../lib/server')

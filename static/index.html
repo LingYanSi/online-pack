@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title></title>
+    <style>
+        :root {
+            --headerheight: 50px;
+        }
+        * {
+            padding: 0;
+            margin: 0;
+        }
+        body {
+            min-height: 100vh;
+        }
+
+        .app {
+            display: flex;
+            padding-top: var(--headerheight);
+            width: 1200px;
+            margin: 0 auto;
+        }
+
+
+        .list{
+            flex: 1;
+            word-break: break-all;
+        }
+
+        .list li {
+            padding: 10px;
+            border-bottom: 1px dashed rgb(215, 221, 210);
+        }
+
+        .log-warp {
+            background: rgba(0, 0, 0, .8);
+            color: rgb(164, 151, 232);
+            position: fixed;
+            height: 80vh;
+            width: 80vw;
+            top: 10vh;
+            left: 10vw;
+        }
+
+        .log-close {
+            position: absolute;
+            top: 3px;
+            left: 4px;
+            height: 16px;
+            width: 16px;
+            background: red;
+            border-radius: 100%;
+        }
+
+        .log {
+            height: 100%;
+            width: 100%;
+            overflow-y: scroll;
+            box-sizing: border-box;
+            padding: 10px;
+            border-top: 22px solid rgb(210, 217, 212);
+        }
+
+        .hide {
+            display: none;
+        }
+
+        pre {
+            word-break: break-all;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+
+        img {
+            height: 50px;
+            width: 50px;
+            vertical-align: middle;
+        }
+
+        header {
+            background: rgb(130, 102, 201);
+            color: #fff;
+            position: fixed;
+            width: 100%;
+            z-index: 1;
+            top: 0;
+            left: 0;
+        }
+
+        .header {
+            height: var(--headerheight);
+            line-height: var(--headerheight);
+            width: 1200px;
+            margin: 0 auto;
+            font-size: 24px;
+        }
+
+        .header .logo {
+            display: inline-block;
+             transform: translate(-50%, 0);
+        }
+
+        .header button {
+            float: right;
+            height: var(--headerheight);
+        }
+
+        button {
+            padding: .5em 1em;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="header">
+            <div class="logo">webpack</div>
+            <button type="button" class="ftp-upload" name="button">手动上传</button>
+        </div>
+    </header>
+    <div class="app">
+        <div class="log-warp hide">
+            <div class="log-close"></div>
+            <div class="log"></div>
+        </div>
+        <ol class="list"></ol>
+    </div>
+    <script src="./socket.io.js" charset="utf-8"></script>
+    <script type="text/javascript">
+        var $log = document.querySelector('.log')
+        var $list = document.querySelector('.list')
+        var cache = {}
+        var currentSocketTime , currentTime
+
+        function ajax(url, option = {method: 'get', body: ''}) {
+            return new Promise(res => {
+                let xhr = new XMLHttpRequest()
+                const {method = "get", body = ""} = option
+
+                xhr.open(method, url)
+                xhr.addEventListener('readystatechange', ()=>{
+                    if(xhr.readyState == 4) {
+                        res(xhr.responseText)
+                    }
+                })
+
+                xhr.send(body)
+            })
+        }
+
+        function renderList(data){
+            let {info, time} = data
+            let {user_name, user_avatar} = info
+
+            return `<li>
+                <img src="${user_avatar}" alt="" />
+                User: ${user_name}
+                Time: ${time}
+                <button class="open-log" data-id="${time}">日志</button>
+            </li>`
+        }
+
+        function getLog(id) {
+            return new Promise(res => {
+                if (cache[id]) {
+                    res(cache[id])
+                } else {
+                    ajax(`/log/${id}.js`).then(result => res(result))
+                }
+            })
+
+        }
+
+        function getList() {
+            return new Promise(res => {
+                ajax(`/log/info.json`).then(response => {
+                    res(JSON.parse(response))
+                })
+            })
+        }
+
+        function renderDefaultList() {
+            getList().then(list => {
+                currentSocketTime = list[0].time
+                $list.innerHTML = list.map(item => renderList(item)).join(' ')
+                startSocket()
+            })
+        }
+
+        renderDefaultList()
+
+        function startSocket() {
+            var socket = io();
+            socket.on('connect', function() {
+                console.log('连接上来了')
+            });
+
+            socket.on('event', function(msg) {
+                let str = msg
+                cache[currentSocketTime] += '\n' + str
+
+                if (currentTime == currentSocketTime) {
+                    let p = document.createElement('pre')
+                    p.textContent = str
+                    $log.appendChild(p)
+                    $log.scrollTop = $log.scrollHeight
+                }
+
+            });
+
+            socket.on('NEW_PACK', function(msg) {
+                let str = decodeURI(msg)
+                let data = JSON.parse(str)
+
+                currentSocketTime = data.time
+                cache[currentSocketTime] = ''
+
+                console.log('新的打包', msg)
+
+                $list.innerHTML = renderList(data) + $list.innerHTML
+                if (currentTime == currentSocketTime) {
+                    $log.innerHTML = ''
+                }
+
+            });
+
+            socket.on('disconnect', function() {
+                console.log('链接已断开')
+            });
+        }
+
+        // 事件监听
+        var $logWarp = $log.parentElement
+        $list.addEventListener('click', (event)=>{
+            let $this = event.target
+            if ($this.classList.contains('open-log')) {
+                $logWarp.classList.remove('hide')
+                let id = $this.dataset['id']
+                $log.innerHTML = ''
+
+                getLog(id).then(content => {
+                    currentTime = id
+                    $log.innerHTML = `<pre>${content}</pre>`
+                })
+            }
+
+
+        })
+
+        document.body.addEventListener('click', (event)=>{
+            let $this = event.target
+            if ($this.classList.contains('ftp-upload')) {
+                $this.disabled = true
+                $this.textContent = 'ftp上传中...'
+                ajax('/ftp/upload', {method: 'post'}).then(res => {
+                    $this.disabled = false
+                    $this.textContent = '手动上传'
+                    alert(res)
+                })
+            }
+        })
+
+        $logWarp.addEventListener('click', (event)=>{
+            if (event.target.classList.contains('log-close')) {
+                $logWarp.classList.add('hide')
+            }
+        })
+
+
+
+    </script>
+</body>
+
+</html>

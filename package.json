@@ -1,0 +1,18 @@
+{
+  "name": "lywpt",
+  "version": "0.0.19",
+  "description": "wpt webApp",
+  "main": "index.js",
+  "scripts": {
+    "start": "node --harmony ./lib/server.js"
+  },
+  "bin": {
+    "lywpt": "./bin/www"
+  },
+  "author": "lingyan",
+  "license": "ISC",
+  "dependencies": {
+    "ip": "^1.1.4",
+    "socket.io": "^1.7.1"
+  }
+}
