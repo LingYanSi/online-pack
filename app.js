@@ -6,6 +6,9 @@ let ftpUpload = require('./lib/ftpUpload')
 let {cwd, port} = require('./lib/config')
 let pull
 
+// 更改cwd到指定文件夹
+process.chdir(cwd);
+
 let server = http.Server((req, res) => {
     if (req.url == '/text' && req.method.toLowerCase() == 'post') {
         // 去更新
