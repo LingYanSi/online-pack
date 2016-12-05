@@ -1,3 +1,4 @@
 {
-    "cwd": "/Users/wangyong/me/webApp"
+    "cwd": "/root/webApp",
+    "port": 80
 }

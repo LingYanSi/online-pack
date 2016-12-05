@@ -3,7 +3,7 @@ let fs = require('fs')
 let path = require('path')
 let ip = require('ip')
 let ftpUpload = require('./lib/ftpUpload')
-let {cwd} = require('./lib/config')
+let {cwd, port} = require('./lib/config')
 let pull
 
 let server = http.Server((req, res) => {
@@ -120,7 +120,7 @@ io.on('connection', function(client) {
 
 // socket.listen(10242);
 
-const PORT = 10080
+const PORT = port
 server.listen(PORT, () => {
     console.log('服务已开启', `http://${ip.address()}:${PORT}`);
     pull = require('./lib/pull')
