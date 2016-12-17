@@ -11,4 +11,4 @@ restart:
 	make start
 
 stopwebp:
-	ps aux | grep webpack | grep -v "grep" | awk '{print $2}' | xargs kill -9
+	ps aux | grep webpack | grep -v "grep" | awk '{print $$2}' | xargs kill -9
